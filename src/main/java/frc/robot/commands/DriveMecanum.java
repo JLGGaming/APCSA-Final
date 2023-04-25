@@ -5,30 +5,44 @@
 package frc.robot.commands;
 import frc.robot.RobotContainer;
 import frc.robot.subsystems.DriveSubsystem;
-
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.CommandBase;
+
+import edu.wpi.first.wpilibj.SPI;
+import com.kauailabs.navx.frc.AHRS;
+
 
 public class DriveMecanum extends CommandBase {
   /** Creates a new DriveMecanum. */
+  
+  AHRS ahrs;
+
+
   public DriveMecanum() {
     addRequirements(RobotContainer.m_Drivetrain);
-
+    ahrs = new AHRS(SPI.Port.kMXP); 
     // Use addRequirements() here to declare subsystem dependencies.
   }
 
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-
   }
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    double xSpeed = -RobotContainer.driverController.getY();
-    double ySpeed = -RobotContainer.driverController.getX();
-    double zRotation = -RobotContainer.driverController.getZ();
+    boolean FO = DriveSubsystem.getFODrive();
+    double xSpeed = -RobotContainer.driverController.getLeftY();
+    double ySpeed = -RobotContainer.driverController.getLeftX();
+    double zRotation = -RobotContainer.driverController.getRightX();
+    if (FO) {
+      RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed, zRotation, ahrs.getRotation2d());
+    }
+    else {
+      RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed, zRotation);
+    }
     
-    RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed, zRotation);
+    
   }
 
   // Called once the command ends or is interrupted.
