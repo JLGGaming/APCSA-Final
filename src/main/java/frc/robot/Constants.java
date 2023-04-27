@@ -17,7 +17,7 @@ public final class Constants {
     public static final int kDriverControllerPort = 0;
   }
 
-  public static class SparkCosntants {
+  public static class CanIDConstants{
     public static final int kFrontLeftChannel = 2;
     public static final int kRearLeftChannel = 3;
     public static final int kFrontRightChannel = 1;

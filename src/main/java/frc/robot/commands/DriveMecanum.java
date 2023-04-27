@@ -8,19 +8,13 @@ import frc.robot.subsystems.DriveSubsystem;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.CommandBase;
 
-import edu.wpi.first.wpilibj.SPI;
-import com.kauailabs.navx.frc.AHRS;
-
 
 public class DriveMecanum extends CommandBase {
   /** Creates a new DriveMecanum. */
-  
-  AHRS ahrs;
 
 
   public DriveMecanum() {
     addRequirements(RobotContainer.m_Drivetrain);
-    ahrs = new AHRS(SPI.Port.kMXP); 
     // Use addRequirements() here to declare subsystem dependencies.
   }
 
@@ -28,21 +22,28 @@ public class DriveMecanum extends CommandBase {
   @Override
   public void initialize() {
   }
-  // Called every time the scheduler runs while the command is scheduled.
+
+  // Called every time the scheduler runs while the command is scheduled. (20ms)
   @Override
   public void execute() {
-    boolean FO = DriveSubsystem.getFODrive();
+    //Check if field orintated drive is active 
+    boolean FieldOrintated = DriveSubsystem.getFODrive();
+
+    //Get the XboxController inputs 
     double xSpeed = -RobotContainer.driverController.getLeftY();
     double ySpeed = -RobotContainer.driverController.getLeftX();
     double zRotation = -RobotContainer.driverController.getRightX();
-    if (FO) {
-      RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed, zRotation, ahrs.getRotation2d());
+
+    //Get Gyro Angle
+    Rotation2d gyroAngle = DriveSubsystem.ahrs.getRotation2d();
+
+    //If field orintated drive is active, overload the Drive() method
+    if (FieldOrintated) {
+      RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed, zRotation, gyroAngle);
     }
     else {
       RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed, zRotation);
     }
-    
-    
   }
 
   // Called once the command ends or is interrupted.
