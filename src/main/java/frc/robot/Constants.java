@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.util.Units;
+
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
  * constants. This class should not be used for any other purpose. All constants should be declared
@@ -18,10 +20,14 @@ public final class Constants {
   }
 
   public static class CanIDConstants{
-    public static final int kFrontLeftChannel = 2;
+    public static final int kFrontLeftChannel = 1;
     public static final int kRearLeftChannel = 3;
-    public static final int kFrontRightChannel = 1;
-    public static final int kRearRightChannel = 0;
+    public static final int kFrontRightChannel = 2;
+    public static final int kRearRightChannel = 4;
+  }
+
+  public static class DriveConstants {
+    public static final double kLinearDistanceConverter = Units.inchesToMeters(10/(42 /*Pulses per Revolution*/ * 27/*Gear Ratio*/ * 2 * Math.PI * Units.inchesToMeters(3)/*Wheel Radius*/));
   }
 
 }

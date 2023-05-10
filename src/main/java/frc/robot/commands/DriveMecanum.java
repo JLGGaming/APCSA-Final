@@ -30,7 +30,7 @@ public class DriveMecanum extends CommandBase {
     boolean FieldOrintated = DriveSubsystem.getFODrive();
 
     //Get the XboxController inputs 
-    double xSpeed = -RobotContainer.driverController.getLeftY();
+    double xSpeed = RobotContainer.driverController.getLeftY();
     double ySpeed = -RobotContainer.driverController.getLeftX();
     double zRotation = -RobotContainer.driverController.getRightX();
 
@@ -39,10 +39,10 @@ public class DriveMecanum extends CommandBase {
 
     //If field orintated drive is active, overload the Drive() method
     if (FieldOrintated) {
-      RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed, zRotation, gyroAngle);
+      RobotContainer.m_Drivetrain.Drive(xSpeed*0.3, ySpeed*0.3, zRotation*0.3, gyroAngle);
     }
     else {
-      RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed, zRotation);
+      RobotContainer.m_Drivetrain.Drive(xSpeed*0.3, ySpeed*0.3, zRotation*0.3);
     }
   }
 

@@ -16,8 +16,9 @@ import edu.wpi.first.math.kinematics.MecanumDriveKinematics; //Makes conversion 
 import edu.wpi.first.math.kinematics.MecanumDriveOdometry; //Allows the tracking of the robot's position on a field
 import edu.wpi.first.math.kinematics.MecanumDriveWheelPositions; // Holds the four wheel speed position
 import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds; // Holds the four wheel speed values 
-// import edu.wpi.first.math.kinematics.ChassisSpeeds; //Represents the speed of the chassis 
-
+import edu.wpi.first.math.kinematics.MecanumDriveOdometry;
+// import edu.wpi.first.math.kinematcs.ChassisSpeeds; //Represents the speed of the chassis 
+import edu.wpi.first.math.controller.PIDController;
 //Pose Imports
 import edu.wpi.first.math.geometry.Pose2d; //Represents a 2D pose containing translational and rotational elements
 import edu.wpi.first.math.geometry.Rotation2d; //Rotates the robot in the 2D Space
@@ -26,16 +27,23 @@ import edu.wpi.first.math.geometry.Translation2d; //Translates the robot in the 
 //Nav-X Gyro Imports
 import edu.wpi.first.wpilibj.SPI; //Represents an SPI bus port. 
 import com.kauailabs.navx.frc.AHRS; //Allows the use of the GYRO
+import com.pathplanner.lib.PathConstraints;
+import com.pathplanner.lib.PathPlanner;
+import com.pathplanner.lib.PathPlannerTrajectory;
+import com.pathplanner.lib.commands.PPMecanumControllerCommand;
 
 //Mecanum Drive Imports 
 import edu.wpi.first.wpilibj.drive.MecanumDrive; //Drives the robot with driveCartesian()
-
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 //WPILIB Command Imports
 import edu.wpi.first.wpilibj2.command.CommandBase; //Creates the command framework
 import edu.wpi.first.wpilibj2.command.SubsystemBase; //Creates the subsystem framework
 
 //Constant Imports
 import frc.robot.Constants.CanIDConstants; //Imports the Id's for the motor controllers
+import frc.robot.Constants.DriveConstants;
 
 
 /** Creates a new MecanumDrive. */
@@ -68,22 +76,36 @@ public class DriveSubsystem extends SubsystemBase {
   //Default field orientated drive to false
   static Boolean foDrive = false;
 
-  //Gyro initlizing
-  public static AHRS ahrs;
+  //Gyro initlizing and configures the NavX to use SPI
+  public static AHRS ahrs = new AHRS(SPI.Port.kMXP); ;
+
+  public PathPlannerTrajectory traj = PathPlanner.loadPath("New Path" /*THIS IS THE FILE NAME*/, new PathConstraints(0.2, 0.1));
 
 
   //Default method, Called when created.  
   public DriveSubsystem() {
+
     //Call the invertMotor() method
-    invertMotors();
-    //Configures the NavX to use SPI
-    ahrs = new AHRS(SPI.Port.kMXP); 
+    configureMotors();
+
+    m_rearRightEncoder.setPositionConversionFactor(DriveConstants.kLinearDistanceConverter);
+    m_frontRightEncoder.setPositionConversionFactor(DriveConstants.kLinearDistanceConverter);
+    m_rearLeftEncoder.setPositionConversionFactor(DriveConstants.kLinearDistanceConverter);
+    m_frontLeftEncoder.setPositionConversionFactor(DriveConstants.kLinearDistanceConverter);
+    
+
   }
     
-  //Invert motors because gearbox things 
-  public void invertMotors(){
+  //Configure the motor controllers
+  public void configureMotors(){
+      //Invert motors because gearbox things 
       frontRight.setInverted(true);
       rearRight.setInverted(true);
+      //Set Max Current for each motor
+      rearRight.setSmartCurrentLimit( 80);
+      rearLeft.setSmartCurrentLimit(80);
+      frontRight.setSmartCurrentLimit(80);
+      frontLeft.setSmartCurrentLimit(80);
     }  
   
 
@@ -96,6 +118,18 @@ public class DriveSubsystem extends SubsystemBase {
   //Field-Orientated Drive
   public void Drive(double xSpeed, double ySpeed, double zRotation, Rotation2d gyroAngle) { 
     mDrive.driveCartesian(xSpeed, ySpeed, zRotation, gyroAngle);
+  }
+
+  //Holonomic Drive
+  public void Drive(double xSpeed, Rotation2d angle, double zRotation) {
+    mDrive.drivePolar(xSpeed, angle, zRotation);
+  }
+  //Holonomic Drive
+  public void drivePP(MecanumDriveWheelSpeeds speeds) {
+    frontLeft.set(speeds.frontLeftMetersPerSecond);
+    frontRight.set(speeds.frontRightMetersPerSecond);
+    rearRight.set(speeds.rearRightMetersPerSecond);
+    rearLeft.set(speeds.rearLeftMetersPerSecond);
   }
 
 
@@ -146,7 +180,7 @@ public class DriveSubsystem extends SubsystemBase {
     return m_odometry.getPoseMeters();
   }
 
-
+  
   //Reset encoders to zero
   public void resetEncoders() {
     m_frontLeftEncoder.setPosition(0);
@@ -162,7 +196,37 @@ public class DriveSubsystem extends SubsystemBase {
     m_rearLeftEncoder.getCountsPerRevolution(), m_rearRightEncoder.getCountsPerRevolution());
   }
 
- 
+  public MecanumDriveWheelSpeeds getWheelSpeedsMetersPerSecond () {
+    return new MecanumDriveWheelSpeeds(m_frontLeftEncoder.getCountsPerRevolution()*DriveConstants.kLinearDistanceConverter,
+    m_frontRightEncoder.getCountsPerRevolution()*DriveConstants.kLinearDistanceConverter,
+    m_rearLeftEncoder.getCountsPerRevolution()*DriveConstants.kLinearDistanceConverter,
+    m_rearRightEncoder.getCountsPerRevolution()*DriveConstants.kLinearDistanceConverter);
+  }
+
+
+  public Command followTrajectoryCommand(PathPlannerTrajectory traj, boolean isFirstPath) {
+    return new SequentialCommandGroup(
+        new InstantCommand(() -> {
+        // Reset odometry for the first path you run during auto
+        if(isFirstPath){
+            this.resetOdometry(traj.getInitialHolonomicPose());
+        }
+        }),
+        new PPMecanumControllerCommand(
+            traj, 
+            this::getPose, // Pose supplier
+            this.kinematics, // MecanumDriveKinematics
+            new PIDController(0, 0, 0), // X controller. Tune these values for your robot. Leaving them 0 will only use feedforwards.
+            new PIDController(0, 0, 0), // Y controller (usually the same values as X controller)
+            new PIDController(0, 0, 0), // Rotation controller. Tune these values for your robot. Leaving them 0 will only use feedforwards.
+            0.5, // Max wheel velocity meters per second
+            this::drivePP, // MecanumDriveWheelSpeeds consumer
+            true, // Shozld the path be automatically mirrored depending on alliance color. Optional, defaults to true
+            this   // Requires this drive subsystem
+        )
+    );
+}
+
   //This method runs every 20ms 
   @Override
   public void periodic() {
