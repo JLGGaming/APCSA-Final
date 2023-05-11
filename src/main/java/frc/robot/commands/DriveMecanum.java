@@ -30,24 +30,33 @@ public class DriveMecanum extends CommandBase {
     boolean FieldOrintated = DriveSubsystem.getFODrive();
 
     //Get the XboxController inputs 
-    double xSpeed = RobotContainer.driverController.getLeftY();
-    double ySpeed = -RobotContainer.driverController.getLeftX();
-    double zRotation = -RobotContainer.driverController.getRightX();
+    double xSpeed = RobotContainer.driverController.getY();
+    double ySpeed = -RobotContainer.driverController.getX();
+    double zRotation = -RobotContainer.driverController.getZ();
 
     //Get Gyro Angle
     Rotation2d gyroAngle = DriveSubsystem.ahrs.getRotation2d();
 
     //If field orintated drive is active, overload the Drive() method
     if (FieldOrintated) {
-      RobotContainer.m_Drivetrain.Drive(xSpeed*0.3, ySpeed*0.3, zRotation*0.3, gyroAngle);
+      RobotContainer.m_Drivetrain.brakeMode(false);
+      RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed, zRotation, gyroAngle);
     }
     else {
-      RobotContainer.m_Drivetrain.Drive(xSpeed*0.3, ySpeed*0.3, zRotation*0.3);
-    }
-  }
+      if (zRotation > 0.25 || zRotation < -0.25){
+      RobotContainer.m_Drivetrain.brakeMode(false);
+      RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed  , zRotation);
+      }
+      else{
+      RobotContainer.m_Drivetrain.Drive(xSpeed, ySpeed, 0);
+      RobotContainer.m_Drivetrain.brakeMode(false);
 
+      }
+      }
+    }
+  
   // Called once the command ends or is interrupted.
-  @Override
+  @Override 
   public void end(boolean interrupted) {}
 
   // Returns true when the command should end.

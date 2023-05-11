@@ -27,7 +27,7 @@ public final class Constants {
   }
 
   public static class DriveConstants {
-    public static final double kLinearDistanceConverter = Units.inchesToMeters(10/(42 /*Pulses per Revolution*/ * 27/*Gear Ratio*/ * 2 * Math.PI * Units.inchesToMeters(3)/*Wheel Radius*/));
+    public static final double kLinearDistanceConverter = 2 * Math.PI * Units.inchesToMeters(3) / 27;
   }
 
 }

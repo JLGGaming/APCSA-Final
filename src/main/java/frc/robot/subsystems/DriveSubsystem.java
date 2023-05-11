@@ -10,13 +10,14 @@ import java.util.ArrayList;
 import com.revrobotics.CANSparkMax; //Using CAN to communicate
 import com.revrobotics.CANSparkMaxLowLevel.MotorType; //Brushless vs Non-Brushless
 import com.revrobotics.RelativeEncoder; //Built-in encoder on the motor 
+import com.revrobotics.CANSparkMax.IdleMode;
 
 //Meacanum Drive Imports
 import edu.wpi.first.math.kinematics.MecanumDriveKinematics; //Makes conversion from ChassisVelocity to WheelSpeeds 
 import edu.wpi.first.math.kinematics.MecanumDriveOdometry; //Allows the tracking of the robot's position on a field
 import edu.wpi.first.math.kinematics.MecanumDriveWheelPositions; // Holds the four wheel speed position
 import edu.wpi.first.math.kinematics.MecanumDriveWheelSpeeds; // Holds the four wheel speed values 
-import edu.wpi.first.math.kinematics.MecanumDriveOdometry;
+import edu.wpi.first.math.util.Units;
 // import edu.wpi.first.math.kinematcs.ChassisSpeeds; //Represents the speed of the chassis 
 import edu.wpi.first.math.controller.PIDController;
 //Pose Imports
@@ -34,6 +35,7 @@ import com.pathplanner.lib.commands.PPMecanumControllerCommand;
 
 //Mecanum Drive Imports 
 import edu.wpi.first.wpilibj.drive.MecanumDrive; //Drives the robot with driveCartesian()
+import edu.wpi.first.wpilibj.drive.DifferentialDrive.WheelSpeeds;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
@@ -45,6 +47,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase; //Creates the subsystem fra
 import frc.robot.Constants.CanIDConstants; //Imports the Id's for the motor controllers
 import frc.robot.Constants.DriveConstants;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /** Creates a new MecanumDrive. */
 public class DriveSubsystem extends SubsystemBase {
@@ -62,10 +65,10 @@ public class DriveSubsystem extends SubsystemBase {
   RelativeEncoder m_rearRightEncoder = rearRight.getEncoder();
 
   //2D Space where the wheels are relative to the center of the robot
-  Translation2d m_frontLeftLocation = new Translation2d(0.381, 0.381); //Must be changed!
-  Translation2d m_frontRightLocation = new Translation2d(0.381, -0.381); //Must be changed!
-  Translation2d m_backLeftLocation = new Translation2d(-0.381, 0.381); //Must be changed!
-  Translation2d m_backRightLocation = new Translation2d(-0.381, -0.381); //Must be changed!
+  Translation2d m_frontLeftLocation = new Translation2d(0.2773, 0.2773); //Must be changed!
+  Translation2d m_frontRightLocation = new Translation2d(0.2773, -0.2773); //Must be changed!
+  Translation2d m_backLeftLocation = new Translation2d(-0.2773, 0.2773); //Must be changed!
+  Translation2d m_backRightLocation = new Translation2d(-0.2773, -0.2773); //Must be changed!
 
   //Creating a kinematics object using the wheel locations
   MecanumDriveKinematics kinematics = new MecanumDriveKinematics(m_frontLeftLocation, m_frontRightLocation, m_backLeftLocation, m_backRightLocation);
@@ -79,7 +82,7 @@ public class DriveSubsystem extends SubsystemBase {
   //Gyro initlizing and configures the NavX to use SPI
   public static AHRS ahrs = new AHRS(SPI.Port.kMXP); ;
 
-  public PathPlannerTrajectory traj = PathPlanner.loadPath("New Path" /*THIS IS THE FILE NAME*/, new PathConstraints(0.2, 0.1));
+  public PathPlannerTrajectory traj = PathPlanner.loadPath("test" /*THIS IS THE FILE NAME*/, new PathConstraints(0.2, 0.1));
 
 
   //Default method, Called when created.  
@@ -87,14 +90,14 @@ public class DriveSubsystem extends SubsystemBase {
 
     //Call the invertMotor() method
     configureMotors();
-
-    m_rearRightEncoder.setPositionConversionFactor(DriveConstants.kLinearDistanceConverter);
-    m_frontRightEncoder.setPositionConversionFactor(DriveConstants.kLinearDistanceConverter);
-    m_rearLeftEncoder.setPositionConversionFactor(DriveConstants.kLinearDistanceConverter);
-    m_frontLeftEncoder.setPositionConversionFactor(DriveConstants.kLinearDistanceConverter);
+    
+    // m_rearRightEncoder.setVelocityConversionFactor(42);
+    // m_frontRightEncoder.setVelocityConversionFactor(42);
+    // m_rearLeftEncoder.setVelocityConversionFactor(42);
+    // m_frontLeftEncoder.setVelocityConversionFactor(42);
     
 
-  }
+  } 
     
   //Configure the motor controllers
   public void configureMotors(){
@@ -106,6 +109,12 @@ public class DriveSubsystem extends SubsystemBase {
       rearLeft.setSmartCurrentLimit(80);
       frontRight.setSmartCurrentLimit(80);
       frontLeft.setSmartCurrentLimit(80);
+
+      frontLeft.setIdleMode(IdleMode.kBrake);
+      frontRight.setIdleMode(IdleMode.kBrake);
+      rearLeft.setIdleMode(IdleMode.kBrake);
+      rearRight.setIdleMode(IdleMode.kBrake);
+
     }  
   
 
@@ -113,6 +122,7 @@ public class DriveSubsystem extends SubsystemBase {
   //Robot-Orientated Drive
   public void Drive(double xSpeed, double ySpeed, double zRotation) {
     mDrive.driveCartesian(xSpeed, ySpeed, zRotation);
+
   }
 
   //Field-Orientated Drive
@@ -120,10 +130,7 @@ public class DriveSubsystem extends SubsystemBase {
     mDrive.driveCartesian(xSpeed, ySpeed, zRotation, gyroAngle);
   }
 
-  //Holonomic Drive
-  public void Drive(double xSpeed, Rotation2d angle, double zRotation) {
-    mDrive.drivePolar(xSpeed, angle, zRotation);
-  }
+ 
   //Holonomic Drive
   public void drivePP(MecanumDriveWheelSpeeds speeds) {
     frontLeft.set(speeds.frontLeftMetersPerSecond);
@@ -137,7 +144,24 @@ public class DriveSubsystem extends SubsystemBase {
   public CommandBase toggleFO(){
     return runOnce(() -> {
       foDrive = !foDrive;
+
     });
+  }
+  
+  public void brakeMode(boolean status)
+  {
+    if (status){
+    frontLeft.setIdleMode(IdleMode.kBrake);
+    frontRight.setIdleMode(IdleMode.kBrake);
+    rearLeft.setIdleMode(IdleMode.kBrake);
+    rearRight.setIdleMode(IdleMode.kBrake);
+    }
+    else {
+      frontLeft.setIdleMode(IdleMode.kCoast);
+      frontRight.setIdleMode(IdleMode.kCoast);
+      rearLeft.setIdleMode(IdleMode.kCoast);
+      rearRight.setIdleMode(IdleMode.kCoast);
+    }
   }
 
   //Creating a odemtry object using the wheel position encoder 
@@ -145,10 +169,11 @@ public class DriveSubsystem extends SubsystemBase {
     kinematics,
     ahrs.getRotation2d(),
     new MecanumDriveWheelPositions(
-      m_frontLeftEncoder.getPosition(), m_frontRightEncoder.getPosition(),
-      m_rearLeftEncoder.getPosition(), m_rearRightEncoder.getPosition()
+      0, 0, 0, 0  
+    /*m_frontLeftEncoder.getPosition(), m_frontRightEncoder.getPosition(),
+      m_rearLeftEncoder.getPosition(), m_rearRightEncoder.getPosition()*/
     ),
-    new Pose2d(5.0, 13.5, new Rotation2d())
+    new Pose2d(1, 4, new Rotation2d())
   );
 
   //Returns the status of foDrive 
@@ -159,8 +184,8 @@ public class DriveSubsystem extends SubsystemBase {
   //Updates the pose of the robot
   public void updatePose(){
     var wheelPositions = new MecanumDriveWheelPositions(
-    m_frontLeftEncoder.getPosition(), m_frontRightEncoder.getPosition(),
-    m_rearLeftEncoder.getPosition(), m_rearRightEncoder.getPosition());
+    DriveConstants.kLinearDistanceConverter * m_frontLeftEncoder.getPosition(), DriveConstants.kLinearDistanceConverter * m_frontRightEncoder.getPosition(),
+    DriveConstants.kLinearDistanceConverter * m_rearLeftEncoder.getPosition(), DriveConstants.kLinearDistanceConverter * m_rearRightEncoder.getPosition());
 
     var gyroAngle = ahrs.getRotation2d();
 
@@ -191,16 +216,17 @@ public class DriveSubsystem extends SubsystemBase {
   
 
   //Returns the speed of each wheel 
-  public MecanumDriveWheelSpeeds getWheelSpeeds() {
-    return new MecanumDriveWheelSpeeds(m_frontLeftEncoder.getCountsPerRevolution(), m_frontRightEncoder.getCountsPerRevolution(),
-    m_rearLeftEncoder.getCountsPerRevolution(), m_rearRightEncoder.getCountsPerRevolution());
-  }
+  // public MecanumDriveWheelSpeeds getWheelSpeeds() {
+  //   return new MecanumDriveWheelSpeeds(m_frontLeftEncoder.getCountsPerRevolution(), m_frontRightEncoder.getCountsPerRevolution(),
+  //   m_rearLeftEncoder.getCountsPerRevolution(), m_rearRightEncoder.getCountsPerRevolution());
+  // }
 
-  public MecanumDriveWheelSpeeds getWheelSpeedsMetersPerSecond () {
-    return new MecanumDriveWheelSpeeds(m_frontLeftEncoder.getCountsPerRevolution()*DriveConstants.kLinearDistanceConverter,
-    m_frontRightEncoder.getCountsPerRevolution()*DriveConstants.kLinearDistanceConverter,
-    m_rearLeftEncoder.getCountsPerRevolution()*DriveConstants.kLinearDistanceConverter,
-    m_rearRightEncoder.getCountsPerRevolution()*DriveConstants.kLinearDistanceConverter);
+  public MecanumDriveWheelSpeeds getWheelSpeeds () {
+    return new MecanumDriveWheelSpeeds(
+      DriveConstants.kLinearDistanceConverter * m_frontLeftEncoder.getVelocity(),
+      DriveConstants.kLinearDistanceConverter * m_frontRightEncoder.getVelocity(),
+      DriveConstants.kLinearDistanceConverter * m_rearLeftEncoder.getVelocity(),
+      DriveConstants.kLinearDistanceConverter * m_rearRightEncoder.getVelocity());
   }
 
 
@@ -211,6 +237,7 @@ public class DriveSubsystem extends SubsystemBase {
         if(isFirstPath){
             this.resetOdometry(traj.getInitialHolonomicPose());
         }
+        brakeMode(true);
         }),
         new PPMecanumControllerCommand(
             traj, 
@@ -219,20 +246,35 @@ public class DriveSubsystem extends SubsystemBase {
             new PIDController(0, 0, 0), // X controller. Tune these values for your robot. Leaving them 0 will only use feedforwards.
             new PIDController(0, 0, 0), // Y controller (usually the same values as X controller)
             new PIDController(0, 0, 0), // Rotation controller. Tune these values for your robot. Leaving them 0 will only use feedforwards.
-            0.5, // Max wheel velocity meters per second
+            0.2, // Max wheel velocity meters per second
             this::drivePP, // MecanumDriveWheelSpeeds consumer
             true, // Shozld the path be automatically mirrored depending on alliance color. Optional, defaults to true
             this   // Requires this drive subsystem
         )
+        
     );
 }
+public void updateSmartDashboard() {
+  SmartDashboard.putNumber("frontLeftCount", m_frontLeftEncoder.getPosition());
+  SmartDashboard.putNumber("frontRightCount", m_frontRightEncoder.getPosition());
+  SmartDashboard.putNumber("rearLeftCount", m_rearLeftEncoder.getPosition());
+  SmartDashboard.putNumber("rearRightCount", m_rearRightEncoder.getPosition());
 
+  SmartDashboard.putNumber("frontLeftSpeed", m_frontLeftEncoder.getVelocity());
+  SmartDashboard.putNumber("frontRightSpeed", m_frontLeftEncoder.getVelocity());
+  SmartDashboard.putNumber("rearRightSpeed", m_rearLeftEncoder.getVelocity());
+  SmartDashboard.putNumber("rearLeftSpeed", m_rearRightEncoder.getVelocity());
+
+}
   //This method runs every 20ms 
   @Override
   public void periodic() {
     //Updating the pose of the robot every 20ms 
     updatePose();
+    updateSmartDashboard();
   }
+
+ 
 
  
 }

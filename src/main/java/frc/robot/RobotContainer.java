@@ -18,6 +18,7 @@ import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.TrajectoryUtil;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.Joystick;
 
 // import java.util.ArrayList;
 
@@ -48,7 +49,7 @@ public class RobotContainer {
   //PathPlannerTrajectory examplePath = PathPlanner.loadPath("wubble U", new PathConstraints(1, 1));
 
   // Replace with CommandPS4Controller or CommandJoystick if needed
-  public static  XboxController driverController = new XboxController(OperatorConstants.kDriverControllerPort);
+  public static  Joystick driverController = new Joystick(OperatorConstants.kDriverControllerPort);
 
   SendableChooser<Command> chooser = new SendableChooser<>();
 
