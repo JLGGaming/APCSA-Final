@@ -84,7 +84,7 @@ public class DriveSubsystem extends SubsystemBase {
 
   //Stores the path with the "test.path" and the set path constraints 
 
-  public ArrayList<PathPlannerTrajectory> traj = (ArrayList<PathPlannerTrajectory>) PathPlanner.loadPathGroup("test", new PathConstraints(0.2, .1));
+  public PathPlannerTrajectory traj = PathPlanner.loadPath("test", new PathConstraints(0.2, .1));
 
   //Default method, Called when created.  
   public DriveSubsystem() {
@@ -130,7 +130,7 @@ public class DriveSubsystem extends SubsystemBase {
   }  
   
   //Path Following command
-  public Command followTrajectoryCommand(ArrayList<PathPlannerTrajectory> traj, boolean isFirstPath) {
+  public Command followTrajectoryCommand(PathPlannerTrajectory traj, boolean isFirstPath) {
     return new SequentialCommandGroup(
       new InstantCommand(() -> {
         // Reset odometry for the first path you run during auto
